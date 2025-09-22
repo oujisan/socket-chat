@@ -5,13 +5,6 @@ import threading
 HOST = '0.0.0.0'
 PORT = 8888
 
-RESET = "\033[0m"
-GRAY  = "\033[90m" 
-CYAN  = "\033[96m"
-GREEN = "\033[32m"
-RED = "\033[31m"
-YELLOW = "\033[33m"
-
 clients = []
 clients_lock = threading.Lock()
 
@@ -28,7 +21,7 @@ def get_ip_addr():
     return ip
 
 def prompt(conn, client_ip, enter=False):
-    conn.sendall(f"{'\n' if enter else ''}{YELLOW}{client_ip}> {RESET}".encode())
+    conn.sendall(f"{'\n' if enter else ''}{client_ip}> ".encode())
 
 def broadcast(message, sender):
     with clients_lock:
@@ -50,11 +43,12 @@ def client(conn, addr):
     with clients_lock:
         clients.append((conn, addr))
         
-    notice_client_new = f"\n{GREEN}[+] Client {client_ip}:{client_port} connected {RESET} ({len(clients)} online)"
-    snotice_client_new = f"{GREEN}[{get_time_now()}] Client {client_ip}:{client_port} connected {RESET} ({len(clients)} online)"
+    notice_client_new = f"\n[+] Client {client_ip}:{client_port} connected ({len(clients)} online)"
+    snotice_client_new = f"[{get_time_now()}] Client {client_ip}:{client_port} connected ({len(clients)} online)"
     print(snotice_client_new)
     
     broadcast(notice_client_new, conn)
+    conn.sendall("TCP Socket Chat\n".encode())
     prompt(conn, client_ip)
     
     try:
@@ -71,31 +65,31 @@ def client(conn, addr):
                 if data.lower() in ['/online', '/on']:
                     with clients_lock:
                         online_client = [f"- {c[1][0]}:{c[1][1]}" for c in clients]
-                    msg = f"{CYAN}[*] Online Client:{RESET}\n{'\n'.join(online_client)}"
+                    msg = f"[*] Online Client:\n{'\n'.join(online_client)}"
                     conn.sendall((msg + "\n").encode())
                     prompt(conn, client_ip)
                     continue
                 
                 if data.lower() in ['/exit', '/quit', '/ex', '/q']:
-                    conn.sendall(f"{CYAN}[*] Disconnecting...{RESET}\n".encode())
+                    conn.sendall(f"[*] Disconnecting...\n".encode())
                     break
 
             
-            msg = f"\n{CYAN}{client_ip}: {RESET}{data}"
-            smsg = f"{CYAN}[{get_time_now()}] {client_ip}: {RESET}{data}"
+            msg = f"\n{client_ip}: {data}"
+            smsg = f"[{get_time_now()}] {client_ip}: {data}"
             print(smsg)
             broadcast(msg, conn)
             
             prompt(conn, client_ip)
             
     except Exception as ex:
-        print(f"[{GRAY}{get_time_now()}] Error handling client ({client_ip}:{client_port}): {ex}{RESET}")
+        print(f"[{get_time_now()}] Error handling client ({client_ip}:{client_port}): {ex}")
     finally:
         with clients_lock:
             clients[:] = [(c, a) for (c, a) in clients if c is not conn]
 
-        notice_client_quit = f"\n{RED}[-] Client {client_ip}:{client_port} close connection{RESET}"
-        snotice_client_quit = f"{RED}[{get_time_now()}] Client {client_ip}:{client_port} close connection{RESET}"
+        notice_client_quit = f"\n[-] Client {client_ip}:{client_port} close connection"
+        snotice_client_quit = f"[{get_time_now()}] Client {client_ip}:{client_port} close connection"
         print(snotice_client_quit)
         broadcast(notice_client_quit, client_ip)
         
@@ -104,8 +98,8 @@ def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sck:
         sck.bind((HOST, PORT))
         sck.listen(5)
-        print(f"{GRAY}[*] Server running in {HOST}:{PORT}{RESET}")
-        print(f"{GRAY}[*] CLient join with 'nc {server_ip} {PORT}'{RESET}")
+        print(f"[*] TCP Server running in {HOST}:{PORT}")
+        print(f"[*] CLient join with 'nc {server_ip} {PORT}'")
         print('='*50)
         try:
             while True:
@@ -114,7 +108,7 @@ def main():
                 
         except KeyboardInterrupt:
             print('\n'+'='*50)
-            print(f"{GRAY}[!] Server close the connection{RESET}")
+            print(f"[!] Server close the connection")
 
 if __name__ == '__main__':
     main()
